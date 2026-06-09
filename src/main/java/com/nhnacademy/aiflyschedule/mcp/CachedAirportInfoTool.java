@@ -19,7 +19,7 @@ public class CachedAirportInfoTool {
     private static final long CACHE_DURATION = 10 * 60 * 1000;  // 10분
 
     @Tool(description = "전체 공항 목록 조회(캐싱)")
-    public List<AirportInfoResponse> getAirportList() {
+    public List<AirportInfoResponse> getCachedAirports() {
         long now = System.currentTimeMillis();
         if(cachedAirports != null && (now - cacheTime) < CACHE_DURATION) {
             log.info("캐시된 공항 목록 반환");
