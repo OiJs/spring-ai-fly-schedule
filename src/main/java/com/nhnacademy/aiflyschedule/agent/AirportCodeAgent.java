@@ -1,40 +1,45 @@
 package com.nhnacademy.aiflyschedule.agent;
 
+import com.nhnacademy.aiflyschedule.dto.response.AirportInfoResponse;
+import com.nhnacademy.aiflyschedule.service.ApiClientService;
+import jakarta.annotation.PostConstruct;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
+//TODO: ApiClientService 호출해서 사용?
+// 현재는 하드 코딩
 public class AirportCodeAgent {
+    private final ApiClientService apiClientService;
     private static final Map<String, String> AIRPORT_CODE_MAP = new HashMap<>();
 
-    static {
-        // 수도권
-        AIRPORT_CODE_MAP.put("김포", "NAARKSS");
-        AIRPORT_CODE_MAP.put("인천", "NAARKSI");
+    @PostConstruct
+    public void init() {
+        try {
+            List<AirportInfoResponse> info = apiClientService.getAirportInfo();
 
-        // 부산/경남권
-        AIRPORT_CODE_MAP.put("김해", "NAARKJB");
-        AIRPORT_CODE_MAP.put("부산", "NAARKJB");
-        AIRPORT_CODE_MAP.put("울산", "NAARKNU");
+            if (info == null || info.isEmpty()) {
+                log.warn("API에서 받아온 공항 정보가 없습니다. 초기화를 중단합니다.");
+                return;
+            }
 
-        // 호남권
-        AIRPORT_CODE_MAP.put("광주", "NAARKJJ");
-        AIRPORT_CODE_MAP.put("여수", "NAARKJY");
-        AIRPORT_CODE_MAP.put("무안", "NAARKJJ");
+            for (AirportInfoResponse airport : info) {
+                if (airport.airportName() != null && airport.airportId() != null) {
+                    AIRPORT_CODE_MAP.put(airport.airportName().trim(), airport.airportId().trim());
+                }
+            }
 
-        // 영남권
-        AIRPORT_CODE_MAP.put("대구", "NAARKTN");
-        AIRPORT_CODE_MAP.put("포항", "NAARKPK");
+            log.info("공항 코드 {}건 캐싱 완료!", AIRPORT_CODE_MAP.size());
 
-        // 충청/강원권
-        AIRPORT_CODE_MAP.put("청주", "NAARKNJ");
-        AIRPORT_CODE_MAP.put("양양", "NAARKNY");
-
-        // 제주권
-        AIRPORT_CODE_MAP.put("제주", "NAARKPC");
+        } catch (Exception e) {
+            log.error("공항 코드 초기화 중 예외 발생 (API 통신 실패 등)", e);
+        }
     }
 
     public String getAirportCode(String airportName) {
