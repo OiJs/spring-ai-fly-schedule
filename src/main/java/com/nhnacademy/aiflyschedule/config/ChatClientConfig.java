@@ -20,10 +20,9 @@ public class ChatClientConfig {
     public ChatClient.Builder ollamaChatClientBuilder(@Qualifier("ollamaChatModel")ChatModel ollamaChatModel,
                                                       FlightSearchTool flightSearchTool,
                                                       AirlineInfoTool airlineInfoTool,
-                                                      AirportInfoTool airportInfoTool,
-                                                      CachedAirportInfoTool cachedAirportInfoTool) {
+                                                      AirportInfoTool airportInfoTool) {
         return ChatClient.builder(ollamaChatModel)
-                .defaultTools(flightSearchTool, airlineInfoTool, airportInfoTool, cachedAirportInfoTool)
+                .defaultTools(flightSearchTool, airlineInfoTool, airportInfoTool)
                 .defaultAdvisors(new SimpleLoggerAdvisor());
     }
 
@@ -31,10 +30,9 @@ public class ChatClientConfig {
     public ChatClient.Builder geminiChatClientBuilder(@Qualifier("googleGenAiChatModel") ChatModel geminiChatModel,
                                                       FlightSearchTool flightSearchTool,
                                                       AirlineInfoTool airlineInfoTool,
-                                                      AirportInfoTool airportInfoTool,
-                                                      CachedAirportInfoTool cachedAirportInfoTool) {
+                                                      AirportInfoTool airportInfoTool) {
         return ChatClient.builder(geminiChatModel)
-                .defaultTools(flightSearchTool, airlineInfoTool, airportInfoTool, cachedAirportInfoTool)
+                .defaultTools(flightSearchTool, airlineInfoTool, airportInfoTool)
                 .defaultAdvisors(new SimpleLoggerAdvisor());
     }
 }

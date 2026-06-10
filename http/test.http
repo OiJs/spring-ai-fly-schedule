@@ -1,0 +1,44 @@
+POST http://localhost:8080/api/chat/gemini
+Content-Type: application/json
+
+{
+  "message": "국내 항공사 코드 제공해줘"
+}
+
+### 시나리오 1: 기본 검색
+POST http://localhost:8080/api/chat/gemini
+Content-Type: application/json
+
+{
+  "message": "내일 광주에서 제주로 가는 항공편 검색해줘"
+}
+
+###
+
+### 시나리오 2: 시간 필터
+POST http://localhost:8080/api/chat/ollama
+Content-Type: application/json
+
+{
+  "message": "오후 2시 이후로 광주에서 제주로 가는 항공편 검색해줘"
+}
+
+###
+
+### 시나리오 3: 가격 필터
+POST http://localhost:8080/api/nl-search/search
+Content-Type: application/json
+
+{
+  "message": "5만원에서 7만원 사이의 광주-제주 항공편 알려줘"
+}
+
+###
+
+### 시나리오 4: 복합 조건
+POST http://localhost:8080/api/nl-search/search
+Content-Type: application/json
+
+{
+  "message": "내일 오후 2시 이후 6만원 이하인 광주-제주 항공편 추천해줘"
+}

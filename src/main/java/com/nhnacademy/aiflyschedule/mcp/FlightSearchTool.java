@@ -1,13 +1,9 @@
 package com.nhnacademy.aiflyschedule.mcp;
 
-import com.nhnacademy.aiflyschedule.dto.response.FlightInfoResponse;
-import com.nhnacademy.aiflyschedule.service.ApiClientService;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
+import com.nhnacademy.aiflyschedule.agent.MultiAgentOrchestrator;
+import com.nhnacademy.aiflyschedule.context.FlightSearchContext;
+import com.nhnacademy.aiflyschedule.dto.response.FlightSearchResult;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
@@ -18,81 +14,47 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class FlightSearchTool {
-    private final ApiClientService clientService;
+
+    private final MultiAgentOrchestrator orchestrator;
 
     @Tool(
             description = "항공편을 검색하여 항공사별로 그룹핑하여 반환합니다." +
                     "출발 공항, 도착 공항, 날짜를 받아 항공사별로 정리된 항공편 목록을 제공합니다." +
-                    "날짜는 '내일', '모레', '2026-03-10', 'n일 뒤', 'n일후' 형식을 지원합니다." +
-                    "빠른 응답을 위해서 항공사별 최대 3편만 반환합니다."
+                    "날짜는 '내일', '모레', '2026-03-10'형식을 지원합니다." +
+                    "빠른 응답을 위해서 항공사별 최대 3편만 반환합니다." +
+                    "[중요 지시사항] 이 도구를 사용하여 비행기를 검색한 경우, 절대로 검색된 비행기 상세 목록(시간, 가격 등)을 응답 메시지에 나열하지 마세요. " +
+                    "단순히 '검색이 완료되었습니다. 결과를 확인해주세요.' 라고만 짧게 대답하세요."
     )
-    public Map<String, List<FlightInfoResponse>> searchFlightsByAirline(
+    public FlightSearchResult searchFlightsByAirline(
             @ToolParam(description = "출발 공항 이름 (예: 광주, 김포, 제주)") String departure,
             @ToolParam(description = "도착 공항 이름 (예: 제주, 김포, 부산)") String arrival,
-            @ToolParam(description = "날짜 (예: 내일, 모레, 2026-03-10)") String date) {
+            @ToolParam(description = "날짜 (예: 내일, 모레, 2026-03-10)") String date,
+            @ToolParam(description = "원하는 출발 시간 기준 (예 14:00, 09:00) 조건이 없으면 빈 문자열", required = false) String afterTime,
+            @ToolParam(description = "최소 가격 (조건이 없으면 null", required = false) Integer minPrice,
+            @ToolParam(description = "최대 가격 (조건이 없으면 null", required = false) Integer maxPrice) {
 
-        log.info("MCP Tool 호출: searchFlightsByAirline(departure={}, arrival={}, date={})",
-                departure, arrival, date);
+        log.info("MCP Tool 호출: searchFlights(dep={}, arr={}, date={}, time={}, min={}, max={})",
+                departure, arrival, date, afterTime, minPrice, maxPrice);
 
-        String formattedDate = parseDate(date);
+        FlightSearchResult result;
 
-        String depAirportId = getAirportCode(departure);
-        String arrAirportId = getAirportCode(arrival);
-
-        List<FlightInfoResponse> allFlights = clientService.getFlightSchedule(
-                depAirportId, arrAirportId, formattedDate);
-
-        Map<String, List<FlightInfoResponse>> groupedFlights = allFlights.stream()
-                .collect(Collectors.groupingBy(FlightInfoResponse::airlineName));
-
-        Map<String, List<FlightInfoResponse>> limitedFlights = new HashMap<>();
-        groupedFlights.forEach((airline, flights) -> {
-            if(flights.size() > 3) {
-                limitedFlights.put(airline, flights.subList(0, 3));
-            } else {
-                limitedFlights.put(airline, flights);
-            }
-        });
-        log.info("MCP Tool 응답: {}개 항공사, {}편",
-                limitedFlights.size(),
-                limitedFlights.values().stream().mapToInt(List::size).sum());
-
-        return limitedFlights;
-    }
-
-    private String parseDate(String date) {
-        LocalDate targetDate;
-
-        if ("내일".equals(date)) {
-            targetDate = LocalDate.now().plusDays(1);
-        } else if ("모레".equals(date)) {
-            targetDate = LocalDate.now().plusDays(2);
-        }
-        else if (date.matches("(\\d+)일 (뒤|후)")) {
-            String daysStr = date.replaceAll("[^0-9]", "");
-            int days = Integer.parseInt(daysStr);
-            targetDate = LocalDate.now().plusDays(days);
-        }
-        else if (date.matches("\\d{4}-\\d{2}-\\d{2}")) {
-            targetDate = LocalDate.parse(date, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-        }
-        else {
-            targetDate = LocalDate.now();
+        if(minPrice != null || maxPrice != null) {
+            int safeMin = (minPrice != null) ? minPrice : 0;
+            int safeMax = (maxPrice != null) ? maxPrice : Integer.MAX_VALUE;
+            result = orchestrator.coordinatePriceFilterSearch(departure, arrival, date, safeMin, safeMax);
+        } else if(afterTime != null && !afterTime.isBlank()) {
+            result = orchestrator.coordinateTimeFilterSearch(departure, arrival, date, afterTime);
+        } else {
+            result = orchestrator.coordinateBasicSearch(departure, arrival, date);
         }
 
-        return targetDate.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-    }
+        // Context 저장 (평탄화 하지 않고 FlightSearchResult 원본을 그대로 저장)
+        if (result != null) {
+            FlightSearchContext.setResult(result);
+        } else {
+            FlightSearchContext.setResult(new FlightSearchResult(List.of()));
+        }
 
-    private String getAirportCode(String airportName) {
-        return switch (airportName) {
-            case "김포" -> "NAARKSS";
-            case "인천" -> "NAARKII";
-            case "김해" -> "NAARKPN";
-            case "광주" -> "NAARKJJ";
-            case "제주" -> "NAARKPC";
-            case "대구" -> "NAARKTN";
-            case "청주" -> "NAARKCJ";
-            default -> "NAARKJJ";  // 기본값
-        };
+        return result;
     }
 }

@@ -15,7 +15,7 @@ public class DateParserAgent {
     public String parseDate(String dateInput) {
         log.info("DateParserAgent: 날짜 파싱 요청 - {}", dateInput);
 
-        if(dateInput == null && dateInput.isBlank()) {
+        if(dateInput == null || dateInput.isBlank()) {
             return LocalDate.now().format(API_DATE_FORMATTER);
         }
 
