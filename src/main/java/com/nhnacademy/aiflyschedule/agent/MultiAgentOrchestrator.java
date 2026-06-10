@@ -1,9 +1,7 @@
 package com.nhnacademy.aiflyschedule.agent;
 
-import com.nhnacademy.aiflyschedule.dto.response.FlightInfoResponse;
-import java.util.Collections;
+import com.nhnacademy.aiflyschedule.dto.response.FlightSearchResult;
 import java.util.List;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,9 +19,9 @@ public class MultiAgentOrchestrator {
     private final TimeFilterAgent timeFilterAgent;
     private final PriceFilterAgent priceFilterAgent;
 
-    public Map<String, List<FlightInfoResponse>> coordinateBasicSearch(String departure,
-                                                                       String arrival,
-                                                                       String date) {
+    public FlightSearchResult coordinateBasicSearch(String departure,
+                                                     String arrival,
+                                                     String date) {
         int maxRetries = 3;
         int retryCount = 0;
         log.info("========================================");
@@ -32,7 +30,7 @@ public class MultiAgentOrchestrator {
 
         while(retryCount < maxRetries) {
             try {
-                Map<String, List<FlightInfoResponse>> result = flightSearchAgent.searchAndGroupByAirline(departure, arrival, date);
+                FlightSearchResult result = flightSearchAgent.searchAndGroupByAirline(departure, arrival, date);
 
                 log.info("========================================");
                 log.info("MultiAgentOrchestrator: 기본 검색 조율 완료 (재시도 횟수: {})", retryCount);
@@ -55,22 +53,22 @@ public class MultiAgentOrchestrator {
                 }
             }
         }
-        return Collections.emptyMap();
+        return new FlightSearchResult(List.of());
     }
 
-    public Map<String, List<FlightInfoResponse>> coordinateTimeFilterSearch(String departure,
-                                                                            String arrival,
-                                                                            String date,
-                                                                            String afterTime) {
+    public FlightSearchResult coordinateTimeFilterSearch(String departure,
+                                                          String arrival,
+                                                          String date,
+                                                          String afterTime) {
         log.info("========================================");
         log.info("MultiAgentOrchestrator: 시간 필터 검색 조율 시작");
         log.info("시간 조건: {} 이후", afterTime);
         log.info("========================================");
 
-        Map<String, List<FlightInfoResponse>> allFlights = flightSearchAgent.searchAndGroupByAirline(departure, arrival, date);
+        FlightSearchResult allFlights = flightSearchAgent.searchAndGroupByAirline(departure, arrival, date);
 
         log.info("시간 필터링 적용");
-        Map<String, List<FlightInfoResponse>> filtered = timeFilterAgent.groupByAfterTime(allFlights, afterTime);
+        FlightSearchResult filtered = timeFilterAgent.groupByAfterTime(allFlights, afterTime);
 
         log.info("========================================");
         log.info("MultiAgentOrchestrator: 시간 필터 검색 조율 완료");
@@ -79,20 +77,20 @@ public class MultiAgentOrchestrator {
         return filtered;
     }
 
-    public Map<String, List<FlightInfoResponse>> coordinatePriceFilterSearch(String departure,
-                                                                             String arrival,
-                                                                             String date,
-                                                                             Integer minPrice,
-                                                                             Integer maxPrice) {
+    public FlightSearchResult coordinatePriceFilterSearch(String departure,
+                                                           String arrival,
+                                                           String date,
+                                                           Integer minPrice,
+                                                           Integer maxPrice) {
         log.info("========================================");
         log.info("MultiAgentOrchestrator: 가격 필터 검색 조율 시작");
         log.info("가격 조건: {} ~ {}원", minPrice, maxPrice);
         log.info("========================================");
 
-        Map<String, List<FlightInfoResponse>> allFlights = flightSearchAgent.searchAndGroupByAirline(departure, arrival, date);
+        FlightSearchResult allFlights = flightSearchAgent.searchAndGroupByAirline(departure, arrival, date);
 
         log.info("가격 필터링 적용");
-        Map<String, List<FlightInfoResponse>> filtered = priceFilterAgent.groupByPrice(allFlights, minPrice, maxPrice);
+        FlightSearchResult filtered = priceFilterAgent.groupByPrice(allFlights, minPrice, maxPrice);
 
         log.info("========================================");
         log.info("MultiAgentOrchestrator: 가격 필터 검색 조율 완료");

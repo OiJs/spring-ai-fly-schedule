@@ -1,9 +1,9 @@
 package com.nhnacademy.aiflyschedule.agent;
 
 import com.nhnacademy.aiflyschedule.dto.response.FlightInfoResponse;
+import com.nhnacademy.aiflyschedule.dto.response.FlightSearchResult;
 import com.nhnacademy.aiflyschedule.service.ApiClientService;
 import java.util.List;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,11 +22,11 @@ public class FlightSearchAgent {
      * @param departure 출발 공항 이름
      * @param arrival 도착 공항 이름
      * @param date 날짜
-     * @return 항공사별로 그룹화된 항공편
+     * @return 항공사별로 그룹화된 항공편 결과 DTO
      */
-    public Map<String, List<FlightInfoResponse>> searchAndGroupByAirline(String departure,
-                                                                         String arrival,
-                                                                         String date) {
+    public FlightSearchResult searchAndGroupByAirline(String departure,
+                                                       String arrival,
+                                                       String date) {
 
         log.info("FlightSearchAgent: 항공편 검색 시작");
 
@@ -46,9 +46,9 @@ public class FlightSearchAgent {
         log.info("  → {}편 조회 완료", flights.size());
 
         log.info("  단계 4: 항공사별 그룹핑");
-        Map<String, List<FlightInfoResponse>> grouped = groupingAgent.groupByAirline(flights);
-        log.info("FlightSearchAgent: 항공편 검색 완료 ({}개 항공사)", grouped.size());
+        FlightSearchResult result = groupingAgent.groupByAirline(flights);
+        log.info("FlightSearchAgent: 항공편 검색 완료 ({}개 항공사)", result.airlineGroups().size());
 
-        return grouped;
+        return result;
     }
 }

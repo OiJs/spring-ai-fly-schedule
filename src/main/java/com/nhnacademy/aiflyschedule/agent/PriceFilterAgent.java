@@ -1,8 +1,10 @@
 package com.nhnacademy.aiflyschedule.agent;
 
+import com.nhnacademy.aiflyschedule.dto.response.AirlineGroupResponse;
 import com.nhnacademy.aiflyschedule.dto.response.FlightInfoResponse;
+import com.nhnacademy.aiflyschedule.dto.response.FlightSearchResult;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -11,26 +13,27 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class PriceFilterAgent {
 
-    public Map<String, List<FlightInfoResponse>> groupByPrice(Map<String, List<FlightInfoResponse>> flights, Integer minPrice, Integer maxPrice) {
-        if(minPrice == null && maxPrice == null) {
-            return flights;
+    public FlightSearchResult groupByPrice(FlightSearchResult searchResult, Integer minPrice, Integer maxPrice) {
+        if ((minPrice == null && maxPrice == null) || searchResult == null) {
+            return searchResult;
         }
 
-        return flights.entrySet().stream()
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        entry -> entry.getValue().stream()
-                                .filter(flight -> {
-                                    Integer price = flight.economyCharge();
+        List<AirlineGroupResponse> filteredGroups = searchResult.airlineGroups().stream()
+                .map(group -> {
+                    List<FlightInfoResponse> filteredFlights = group.flights().stream()
+                            .filter(flight -> {
+                                Integer price = flight.economyCharge();
+                                if (price == null || price == 0) return false;
+                                boolean isOverMin = (minPrice == null || price >= minPrice);
+                                boolean isUnderMax = (maxPrice == null || price <= maxPrice);
+                                return isOverMin && isUnderMax;
+                            }).toList();
 
-                                    if(price == null || price == 0) return  false;
-                                    boolean isOverMin = (minPrice == null || price >= minPrice);
-                                    boolean isUnderMax = (maxPrice == null || price <= maxPrice);
-                                    return isOverMin && isUnderMax;
-                                }).toList()
-                ))
-                .entrySet().stream()
-                .filter(entry -> !entry.getValue().isEmpty())
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                    return filteredFlights.isEmpty() ? null : new AirlineGroupResponse(group.airlineName(), filteredFlights);
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        return new FlightSearchResult(filteredGroups);
     }
 }
