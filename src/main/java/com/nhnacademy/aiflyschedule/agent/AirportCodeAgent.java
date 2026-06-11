@@ -21,10 +21,13 @@ import org.springframework.stereotype.Service;
 public class AirportCodeAgent {
     private final ApiClientService apiClientService;
     
-    // 캐시 저장소: 맵(조회용) 및 리스트(전체 목록용)
-    private static final Map<String, String> AIRPORT_CODE_MAP = new HashMap<>();
-    private static final List<AirportInfoResponse> AIRPORT_LIST = new ArrayList<>();
+    // static 제거: 테스트 고립성 및 동적인 상태 관리 보장
+    private final Map<String, String> airportCodeMap = new HashMap<>();
+    private final List<AirportInfoResponse> airportList = new ArrayList<>();
 
+    /**
+     * 서버 시작 시 공항 정보 미리 캐싱
+     */
     @PostConstruct
     public void init() {
         try {
@@ -36,17 +39,17 @@ public class AirportCodeAgent {
                 return;
             }
 
-            AIRPORT_LIST.clear();
-            AIRPORT_LIST.addAll(info);
+            airportList.clear();
+            airportList.addAll(info);
 
-            AIRPORT_CODE_MAP.clear();
+            airportCodeMap.clear();
             for (AirportInfoResponse airport : info) {
                 if (airport.airportName() != null && airport.airportId() != null) {
-                    AIRPORT_CODE_MAP.put(airport.airportName().trim(), airport.airportId().trim());
+                    airportCodeMap.put(airport.airportName().trim(), airport.airportId().trim());
                 }
             }
 
-            log.info("공항 코드 {}건 캐싱 완료!", AIRPORT_CODE_MAP.size());
+            log.info("공항 코드 {}건 캐싱 완료!", airportCodeMap.size());
 
         } catch (Exception e) {
             log.error("공항 코드 초기화 중 예외 발생 (API 통신 실패 등)", e);
@@ -55,6 +58,8 @@ public class AirportCodeAgent {
 
     /**
      * 공항 이름으로 코드를 조회합니다.
+     * @param airportName 공항 이름
+     * @return 공항 이름에 해당 하는 코드 반환
      */
     public String getAirportCode(String airportName) {
         if(airportName == null || airportName.isBlank()) {
@@ -66,7 +71,7 @@ public class AirportCodeAgent {
             return normalized;
         }
 
-        String code = AIRPORT_CODE_MAP.get(normalized);
+        String code = airportCodeMap.get(normalized);
         if(code == null) {
             log.warn("알 수 없는 공항: {}", airportName);
             throw new IllegalArgumentException("알 수 없는 공항입니다: " + airportName);
@@ -75,16 +80,17 @@ public class AirportCodeAgent {
     }
 
     /**
-     * 캐시된 전체 공항 목록을 반환합니다.
+     *
+     * @return 캐시된 전체 공항 목록을 반환
      */
     public List<AirportInfoResponse> getAllAirports() {
-        return Collections.unmodifiableList(AIRPORT_LIST);
+        return Collections.unmodifiableList(airportList);
     }
 
     public boolean isValidAirport(String airportName) {
         if(airportName == null || airportName.isBlank()) {
             return false;
         }
-        return AIRPORT_CODE_MAP.containsKey(airportName.trim());
+        return airportCodeMap.containsKey(airportName.trim());
     }
 }

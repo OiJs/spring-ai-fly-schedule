@@ -1,7 +1,6 @@
 package com.nhnacademy.aiflyschedule.agent;
 
 import com.nhnacademy.aiflyschedule.dto.response.FlightInfoResponse;
-import com.nhnacademy.aiflyschedule.dto.response.FlightSearchResult;
 import com.nhnacademy.aiflyschedule.service.ApiClientService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -13,42 +12,48 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class FlightSearchAgent {
     private final ApiClientService apiClientService;
-    private final DateParserAgent dateParserAgent;
-    private final AirportCodeAgent airportCodeAgent;
-    private final GroupingAgent groupingAgent;
 
     /**
-     * 항공사 검색, 항공사별 그룹핑
-     * @param departure 출발 공항 이름
-     * @param arrival 도착 공항 이름
-     * @param date 날짜
-     * @return 항공사별로 그룹화된 항공편 결과 DTO
+     * 항공편 API 호출
+     * 외부 api 호출 실패 시 2회 재시도
+     * @param depCode 출발공항 Code
+     * @param arrCode 도착공항 Code
+     * @param formattedDate formatting된 날짜 (yyyyMMdd)
+     * @return 항공편 정보 리스트 (그룹화 X)
      */
-    public FlightSearchResult searchAndGroupByAirline(String departure,
-                                                       String arrival,
-                                                       String date) {
 
-        log.info("FlightSearchAgent: 항공편 검색 시작");
+    //TODO retry로직 수정 필요
+    // agent가 retry까지 전담하는게 맞는지?
+    // ApiClientService에서 재시도 로직 처리하는게 더 적합 해보임
+    // spring-retry 고려? 학습 필요
 
-        log.info("  단계 1: 날짜 파싱");
-        String formattedDate = dateParserAgent.parseDate(date);
-        log.info("  → 날짜: {} → {}", date, formattedDate);
+    public List<FlightInfoResponse> searchFlights(String depCode,
+                                                   String arrCode,
+                                                   String formattedDate) {
+        int maxRetries = 2;
+        int retryCount = 0;
 
-        log.info("  단계 2: 공항 코드 변환");
-        String depCode = airportCodeAgent.getAirportCode(departure);
-        String arrCode = airportCodeAgent.getAirportCode(arrival);
+        while (retryCount < maxRetries) {
+            try {
+                log.info("FlightSearchAgent: 항공편 API 호출 시도 {}/{} ({} -> {} / {})", 
+                         retryCount + 1, maxRetries, depCode, arrCode, formattedDate);
+                return apiClientService.getFlightSchedule(depCode, arrCode, formattedDate);
+            } catch (Exception e) {
+                retryCount++;
+                if (retryCount >= maxRetries) {
+                    log.error("FlightSearchAgent: 최대 재시도 횟수 초과 ({}). API 호출 실패.", maxRetries);
+                    return List.of();
+                }
+                log.warn("FlightSearchAgent: API 호출 실패. 재시도 {}/{}: {}", retryCount, maxRetries, e.getMessage());
 
-        log.info("  → 출발: {} → {}", departure, depCode);
-        log.info("  → 도착: {} → {}", arrival, arrCode);
-
-        log.info("  단계 3: 항공편 API 호출");
-        List<FlightInfoResponse> flights = apiClientService.getFlightSchedule(depCode, arrCode, formattedDate);
-        log.info("  → {}편 조회 완료", flights.size());
-
-        log.info("  단계 4: 항공사별 그룹핑");
-        FlightSearchResult result = groupingAgent.groupByAirline(flights);
-        log.info("FlightSearchAgent: 항공편 검색 완료 ({}개 항공사)", result.airlineGroups().size());
-
-        return result;
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                    return List.of();
+                }
+            }
+        }
+        return List.of();
     }
 }
