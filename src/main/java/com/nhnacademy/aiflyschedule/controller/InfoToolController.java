@@ -2,8 +2,6 @@ package com.nhnacademy.aiflyschedule.controller;
 
 import com.nhnacademy.aiflyschedule.agent.AirlineCodeAgent;
 import com.nhnacademy.aiflyschedule.agent.AirportCodeAgent;
-import com.nhnacademy.aiflyschedule.mcp.AirlineInfoTool;
-import com.nhnacademy.aiflyschedule.mcp.AirportInfoTool;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
