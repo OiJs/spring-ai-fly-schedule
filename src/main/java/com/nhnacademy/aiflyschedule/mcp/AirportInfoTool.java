@@ -21,7 +21,8 @@ public class AirportInfoTool {
     @Tool(
             description = "전체 공항 목록을 조회합니다. " +
                     "국내 모든 공항의 코드와 이름을 반환합니다. " +
-                    "사용자가 '공항 리스트', '공항 목록', '어느 공항이 있어?' 등을 물을 때 사용합니다."
+                    "사용자가 '공항 리스트', '공항 목록', '어느 공항이 있어?' 등을 물을 때 사용합니다. " +
+                    "[중요 지시사항] 사용자에게 목록을 보여줄 때는 반드시 마크다운(Markdown) 글머리 기호('-')를 사용하고, 각 공항마다 줄바꿈을 하여 세로로 길게 출력하세요."
     )
     public List<AirportInfoResponse> getAirportList() {
         log.info("MCP Tool 호출: getAirportList()");

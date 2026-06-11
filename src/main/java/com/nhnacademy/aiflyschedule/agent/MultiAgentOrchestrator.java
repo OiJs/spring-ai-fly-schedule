@@ -1,101 +1,86 @@
 package com.nhnacademy.aiflyschedule.agent;
 
+import com.nhnacademy.aiflyschedule.dto.request.FlightSearchRequest;
+import com.nhnacademy.aiflyschedule.dto.response.AirlineGroupResponse;
+import com.nhnacademy.aiflyschedule.dto.response.FlightInfoResponse;
 import com.nhnacademy.aiflyschedule.dto.response.FlightSearchResult;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-@Service
-@Slf4j
-@RequiredArgsConstructor
 /**
  * 멀티 에이전트 오케스트레이터
  *
- * 여러 에이전트를 조율하여 항공편 검색 및 추천 작업을 수행합니다.
+ * 여러 에이전트를 조율하여 항공편 검색, 가격/시간 필터링 작업을 통합 수행합니다.
  */
+@Service
+@Slf4j
+@RequiredArgsConstructor
 public class MultiAgentOrchestrator {
     private final FlightSearchAgent flightSearchAgent;
     private final TimeFilterAgent timeFilterAgent;
     private final PriceFilterAgent priceFilterAgent;
+    private final DateParserAgent dateParserAgent;
+    private final AirportCodeAgent airportCodeAgent;
+    private final GroupingAgent groupingAgent;
 
-    public FlightSearchResult coordinateBasicSearch(String departure,
-                                                     String arrival,
-                                                     String date) {
-        int maxRetries = 3;
-        int retryCount = 0;
-        log.info("========================================");
-        log.info("MultiAgentOrchestrator: 기본 검색 조율 시작");
-        log.info("========================================");
+    /**
+     * 통합 항공편 검색 조율
+     * 파이프라인을 따라 에이전트들을 호출하고 필터링된 리스트 데이터를 반환합니다.
+     */
+    public FlightSearchResult coordinateSearch(FlightSearchRequest request) {
+        
+        log.info("MultiAgentOrchestrator: 통합 검색 조율 시작 (출발={}, 도착={}, 날짜={})", 
+                request.departure(), request.arrival(), request.date());
 
-        while(retryCount < maxRetries) {
-            try {
-                FlightSearchResult result = flightSearchAgent.searchAndGroupByAirline(departure, arrival, date);
+        // 날짜 파싱
+        String formattedDate = dateParserAgent.parseDate(request.date());
 
-                log.info("========================================");
-                log.info("MultiAgentOrchestrator: 기본 검색 조율 완료 (재시도 횟수: {})", retryCount);
-                log.info("========================================");
+        // 공항 코드 변환
+        String depCode = airportCodeAgent.getAirportCode(request.departure());
+        String arrCode = airportCodeAgent.getAirportCode(request.arrival());
 
-                return result;
-            } catch (Exception e) {
-                retryCount++;
-                if(retryCount >= maxRetries) {
-                    log.error("최대 재시도 횟수 초과: {}", maxRetries);
-                    throw new RuntimeException("항공편 검색 실패", e);
-                }
-                log.warn("재시도 {}/{}: {}", retryCount, maxRetries, e.getMessage());
+        // 항공편 검색 (재시도 로직은 FlightSearchAgent 내부에 구현됨)
+        List<FlightInfoResponse> flights = flightSearchAgent.searchFlights(depCode, arrCode, formattedDate);
 
-                try {
-                    Thread.sleep(1000 * retryCount);
-                } catch (InterruptedException ex) {
-                    Thread.currentThread().interrupt();
-                    throw new RuntimeException("재시도 중단", ex);
-                }
-            }
+        if (flights.isEmpty()) {
+            return new FlightSearchResult(List.of());
         }
-        return new FlightSearchResult(List.of());
+
+        // 항공사별 그룹핑
+        List<AirlineGroupResponse> groups = groupingAgent.groupByAirline(flights);
+
+        // 가격 필터 적용
+        if (request.minPrice() != null || request.maxPrice() != null) {
+            groups = priceFilterAgent.groupByPrice(groups, request.minPrice(), request.maxPrice());
+        }
+
+        // 시간 필터 적용
+        if (request.afterTime() != null && !request.afterTime().isBlank()) {
+            groups = timeFilterAgent.groupByAfterTime(groups, request.afterTime());
+        }
+
+        log.info("MultiAgentOrchestrator: 통합 검색 조율 완료");
+        
+        return new FlightSearchResult(groups);
     }
 
-    public FlightSearchResult coordinateTimeFilterSearch(String departure,
-                                                          String arrival,
-                                                          String date,
-                                                          String afterTime) {
-        log.info("========================================");
-        log.info("MultiAgentOrchestrator: 시간 필터 검색 조율 시작");
-        log.info("시간 조건: {} 이후", afterTime);
-        log.info("========================================");
-
-        FlightSearchResult allFlights = flightSearchAgent.searchAndGroupByAirline(departure, arrival, date);
-
-        log.info("시간 필터링 적용");
-        FlightSearchResult filtered = timeFilterAgent.groupByAfterTime(allFlights, afterTime);
-
-        log.info("========================================");
-        log.info("MultiAgentOrchestrator: 시간 필터 검색 조율 완료");
-        log.info("========================================");
-
-        return filtered;
-    }
-
-    public FlightSearchResult coordinatePriceFilterSearch(String departure,
-                                                           String arrival,
-                                                           String date,
-                                                           Integer minPrice,
-                                                           Integer maxPrice) {
-        log.info("========================================");
-        log.info("MultiAgentOrchestrator: 가격 필터 검색 조율 시작");
-        log.info("가격 조건: {} ~ {}원", minPrice, maxPrice);
-        log.info("========================================");
-
-        FlightSearchResult allFlights = flightSearchAgent.searchAndGroupByAirline(departure, arrival, date);
-
-        log.info("가격 필터링 적용");
-        FlightSearchResult filtered = priceFilterAgent.groupByPrice(allFlights, minPrice, maxPrice);
-
-        log.info("========================================");
-        log.info("MultiAgentOrchestrator: 가격 필터 검색 조율 완료");
-        log.info("========================================");
-
-        return filtered;
+    /**
+     * 기본 검색 조율 (FlightSearchTool 등에서의 개별 호출 대비)
+     */
+    public List<AirlineGroupResponse> coordinateBasicSearch(String departure,
+                                                            String arrival,
+                                                            String date) {
+        String formattedDate = dateParserAgent.parseDate(date);
+        String depCode = airportCodeAgent.getAirportCode(departure);
+        String arrCode = airportCodeAgent.getAirportCode(arrival);
+        
+        List<FlightInfoResponse> flights = flightSearchAgent.searchFlights(depCode, arrCode, formattedDate);
+        if (flights.isEmpty()) {
+            return List.of();
+        }
+        
+        return groupingAgent.groupByAirline(flights);
     }
 }

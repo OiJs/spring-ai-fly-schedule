@@ -2,7 +2,6 @@ package com.nhnacademy.aiflyschedule.agent;
 
 import com.nhnacademy.aiflyschedule.dto.response.AirlineGroupResponse;
 import com.nhnacademy.aiflyschedule.dto.response.FlightInfoResponse;
-import com.nhnacademy.aiflyschedule.dto.response.FlightSearchResult;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -13,14 +12,17 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class TimeFilterAgent {
 
-    public FlightSearchResult groupByAfterTime(FlightSearchResult searchResult, String afterTime) {
-        if (afterTime == null || afterTime.isBlank() || searchResult == null) {
-            return searchResult;
+    /**
+     * 시간 조건에 맞춰 항공사 그룹 목록을 필터링합니다.
+     */
+    public List<AirlineGroupResponse> groupByAfterTime(List<AirlineGroupResponse> groups, String afterTime) {
+        if (afterTime == null || afterTime.isBlank() || groups == null) {
+            return groups;
         }
 
         int targetTime = parseTimeToInt(afterTime);
 
-        List<AirlineGroupResponse> filteredGroups = searchResult.airlineGroups().stream()
+        return groups.stream()
                 .map(group -> {
                     List<FlightInfoResponse> filteredFlights = group.flights().stream()
                             .filter(flight -> {
@@ -36,8 +38,6 @@ public class TimeFilterAgent {
                 })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
-
-        return new FlightSearchResult(filteredGroups);
     }
 
     private int parseTimeToInt(String timeStr) {

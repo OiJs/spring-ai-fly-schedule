@@ -21,9 +21,9 @@ import org.springframework.stereotype.Service;
 public class AirlineCodeAgent {
     private final ApiClientService apiClientService;
 
-    // 캐시 저장소: 맵(조회용) 및 리스트(전체 목록용)
-    private static final Map<String, String> AIRLINE_ID_MAP = new HashMap<>();
-    private static final List<AirlineInfoResponse> AIRLINE_LIST = new ArrayList<>();
+    // static 제거: 테스트 고립성 보장
+    private final Map<String, String> airlineIdMap = new HashMap<>();
+    private final List<AirlineInfoResponse> airlineList = new ArrayList<>();
 
     @PostConstruct
     public void init() {
@@ -36,17 +36,17 @@ public class AirlineCodeAgent {
                 return;
             }
 
-            AIRLINE_LIST.clear();
-            AIRLINE_LIST.addAll(info);
+            airlineList.clear();
+            airlineList.addAll(info);
 
-            AIRLINE_ID_MAP.clear();
+            airlineIdMap.clear();
             for (AirlineInfoResponse airline : info) {
                 if (airline.airlineName() != null && airline.airlineId() != null) {
-                    AIRLINE_ID_MAP.put(airline.airlineName().trim(), airline.airlineId().trim());
+                    airlineIdMap.put(airline.airlineName().trim(), airline.airlineId().trim());
                 }
             }
 
-            log.info("항공사 코드 {}건 캐싱 완료!", AIRLINE_ID_MAP.size());
+            log.info("항공사 코드 {}건 캐싱 완료!", airlineIdMap.size());
 
         } catch (Exception e) {
             log.error("항공사 코드 초기화 중 예외 발생 (API 통신 실패 등)", e);
@@ -62,7 +62,7 @@ public class AirlineCodeAgent {
         }
         String normalized = airlineName.trim();
 
-        String id = AIRLINE_ID_MAP.get(normalized);
+        String id = airlineIdMap.get(normalized);
         if (id == null) {
             log.warn("알 수 없는 항공사: {}", airlineName);
             return "알 수 없는 항공사입니다: " + airlineName;
@@ -74,6 +74,6 @@ public class AirlineCodeAgent {
      * 캐시된 전체 항공사 목록을 반환합니다.
      */
     public List<AirlineInfoResponse> getAllAirlines() {
-        return Collections.unmodifiableList(AIRLINE_LIST);
+        return Collections.unmodifiableList(airlineList);
     }
 }

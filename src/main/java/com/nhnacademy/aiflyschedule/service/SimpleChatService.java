@@ -32,11 +32,10 @@ public class SimpleChatService {
             
             // Tool 실행 중 컨텍스트에 저장된 그룹핑된 데이터 조회
             FlightSearchResult searchResult = FlightSearchContext.getResult();
-            
-            // 하이브리드 응답 반환
+
             return new ChatApiResponse(llmMessage, searchResult);
         } finally {
-            // ★ 중요: 현재 스레드의 요청 처리가 끝나면 반드시 메모리 해제
+            // 현재 스레드의 요청 처리가 끝나면 메모리 해제
             FlightSearchContext.clear();
         }
     }
