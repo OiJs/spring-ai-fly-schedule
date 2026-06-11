@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import com.nhnacademy.aiflyschedule.dto.request.FlightSearchRequest;
 import com.nhnacademy.aiflyschedule.dto.response.AirlineGroupResponse;
 import com.nhnacademy.aiflyschedule.dto.response.FlightInfoResponse;
+import com.nhnacademy.aiflyschedule.dto.response.FlightSearchResult;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -40,11 +41,11 @@ class MultiAgentOrchestratorTest {
     void coordinateSearch() {
         // Given
         FlightSearchRequest request = new FlightSearchRequest("김포", "제주", "내일", "10:00", 50000, 100000);
-        
+
         String formattedDate = "20260611";
         String depCode = "GMP";
         String arrCode = "CJU";
-        
+
         List<FlightInfoResponse> mockFlights = List.of(
                 new FlightInfoResponse("F1", "대한항공", "202606111000", "202606111100", 70000, 0, "김포", "제주")
         );
@@ -55,17 +56,18 @@ class MultiAgentOrchestratorTest {
         when(airportCodeAgent.getAirportCode("제주")).thenReturn(arrCode);
         when(flightSearchAgent.searchFlights(depCode, arrCode, formattedDate)).thenReturn(mockFlights);
         when(groupingAgent.groupByAirline(mockFlights)).thenReturn(mockGroups);
-        
+
         // 필터들은 그대로 반환한다고 가정
         when(priceFilterAgent.groupByPrice(any(), any(), any())).thenReturn(mockGroups);
         when(timeFilterAgent.groupByAfterTime(any(), any())).thenReturn(mockGroups);
 
         // When
-        List<AirlineGroupResponse> result = orchestrator.coordinateSearch(request);
+        FlightSearchResult result = orchestrator.coordinateSearch(request);
 
         // Then
-        assertThat(result).hasSize(1);
-        assertThat(result.getFirst().airlineName()).isEqualTo("대한항공");
+        assertThat(result).isNotNull();
+        assertThat(result.airlineGroups()).hasSize(1);
+        assertThat(result.airlineGroups().getFirst().airlineName()).isEqualTo("대한항공");
 
         verify(dateParserAgent).parseDate("내일");
         verify(airportCodeAgent).getAirportCode("김포");

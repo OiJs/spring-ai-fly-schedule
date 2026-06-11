@@ -17,6 +17,7 @@ public record FlightSearchRequest(
         String afterTime,
         @Min(0)
         Integer minPrice,
+        @Min(0)
         Integer maxPrice
 ) {
 }

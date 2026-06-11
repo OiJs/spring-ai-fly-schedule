@@ -17,11 +17,11 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class AirlineInfoTool {
     private final AirlineCodeAgent airlineCodeAgent;
-
-    @Tool(
-            description = "전체 항공사 목록을 조회합니다. " +
-                    "국내 모든 항공사의 코드와 이름을 반환합니다. " +
-                    "사용자가 '항공사 리스트', '어떤 항공사가 있어?' 등을 물을 때 사용합니다."
+@Tool(
+        description = "전체 항공사 목록을 조회합니다. " +
+                "국내 모든 항공사의 코드와 이름을 반환합니다. " +
+                "사용자가 '항공사 리스트', '어떤 항공사가 있어?' 등을 물을 때 사용합니다. " +
+                "[중요 지시사항] 사용자에게 목록을 보여줄 때는 반드시 마크다운(Markdown) 글머리 기호('-')를 사용하고, 각 항공사마다 줄바꿈을 하여 세로로 길게 출력하세요."
     )
     public List<AirlineInfoResponse> getAirlineList() {
         log.info("MCP Tool 호출: getAirlineList()");

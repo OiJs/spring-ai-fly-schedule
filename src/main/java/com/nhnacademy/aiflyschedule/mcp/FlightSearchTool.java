@@ -44,8 +44,7 @@ public class FlightSearchTool {
         FlightSearchRequest request = new FlightSearchRequest(
                 departure, arrival, date, afterTime, minPrice, maxPrice);
 
-        List<AirlineGroupResponse> groups = orchestrator.coordinateSearch(request);
-        FlightSearchResult result = new FlightSearchResult(groups);
+        FlightSearchResult result = orchestrator.coordinateSearch(request);
 
         // 검색 결과가 있으면 컨텍스트에 저장 자연어+DTO 지원
         FlightSearchContext.setResult(result);

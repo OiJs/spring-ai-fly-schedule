@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spring AI Fly Schedule - 홈</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .hero-section { background: linear-gradient(135deg, #0d6efd, #0dcaf0); color: white; padding: 100px 0; }
+        .feature-card { transition: transform 0.3s; cursor: pointer; height: 100%; }
+        .feature-card:hover { transform: translateY(-10px); }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" href="/">Fly Schedule AI</a>
+    </div>
+</nav>
+
+<header class="hero-section text-center">
+    <div class="container">
+        <h1 class="display-4 fw-bold">스마트한 항공 여행의 시작</h1>
+        <p class="lead">Spring AI와 멀티 에이전트 시스템을 활용한 최적의 항공편 검색 서비스</p>
+    </div>
+</header>
+
+<main class="container my-5">
+    <div class="row g-4 justify-content-center">
+        <!-- Feature 1: LLM Search -->
+        <div class="col-md-5">
+            <div class="card feature-card shadow-sm border-0" onclick="location.href='/llm'">
+                <div class="card-body text-center p-5">
+                    <div class="mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-chat-dots text-primary" viewBox="0 0 16 16">
+                            <path d="M5 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm4 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/>
+                            <path d="M2.165 15.803l.02-.004c1.83-.363 2.948-.842 3.468-1.105A9.06 9.06 0 0 0 8 15c4.418 0 8-3.134 8-7s-3.582-7-8-7-8 3.134-8 7c0 1.76.743 3.37 1.97 4.6a10.437 10.437 0 0 1-.524 2.318l-.003.011a10.722 10.722 0 0 1-.244.637c-.079.186.074.394.273.362a21.673 21.673 0 0 0 .693-.125zm.8-3.108a1 1 0 0 0-.287-.801C1.618 10.83 1 9.468 1 8c0-3.192 3.004-6 7-6s7 2.808 7 6c0 3.193-3.004 6-7 6a8.06 8.06 0 0 1-2.088-.272 1 1 0 0 0-.711.074c-.387.196-1.24.57-2.634.893a10.97 10.97 0 0 0 .398-2z"/>
+                        </svg>
+                    </div>
+                    <h2 class="h4 fw-bold">LLM 지능형 검색</h2>
+                    <p class="text-muted">"내일 제주도 가는 가장 저렴한 비행기 찾아줘" 처럼 자연어로 대화하며 원하는 정보를 찾아보세요.</p>
+                    <a href="/llm" class="btn btn-primary mt-3">대화 시작하기</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feature 2: Basic Search -->
+        <div class="col-md-5">
+            <div class="card feature-card shadow-sm border-0" onclick="location.href='/search'">
+                <div class="card-body text-center p-5">
+                    <div class="mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-search text-info" viewBox="0 0 16 16">
+                            <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                        </svg>
+                    </div>
+                    <h2 class="h4 fw-bold">기본 통합 검색</h2>
+                    <p class="text-muted">출발지, 목적지, 날짜 및 가격/시간 필터를 직접 설정하여 정확한 항공 일정을 빠르게 조회합니다.</p>
+                    <a href="/search" class="btn btn-info text-white mt-3">검색하러 가기</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-5">
+        <div class="col-12 text-center">
+            <h3 class="mb-4">주요 기능 소개</h3>
+        </div>
+        <div class="col-md-4">
+            <h5>멀티 에이전트 오케스트레이션</h5>
+            <p class="small text-muted">날짜 파싱, 공항 코드 변환, 그룹핑, 필터링 등 각 단계를 전문 에이전트들이 협력하여 처리합니다.</p>
+        </div>
+        <div class="col-md-4">
+            <h5>실시간 항공 정보 API 연합</h5>
+            <p class="small text-muted">공공데이터포털(Data.go.kr)의 실시간 항공 일정을 바탕으로 신뢰할 수 있는 데이터를 제공합니다.</p>
+        </div>
+        <div class="col-md-4">
+            <h5>다양한 LLM 모델 지원</h5>
+            <p class="small text-muted">Google Gemini와 로컬 실행 모델인 Ollama를 선택하여 사용할 수 있습니다.</p>
+        </div>
+    </div>
+</main>
+
+<footer class="bg-dark text-white py-4 mt-5">
+    <div class="container text-center">
+        <p class="mb-0">© 2026 Spring AI Fly Schedule. Built with Spring AI & Thymeleaf.</p>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

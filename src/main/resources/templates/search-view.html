@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fly Schedule AI - 통합 검색</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f7f6; }
+        .nav-tabs .nav-link { color: #495057; }
+        .nav-tabs .nav-link.active { font-weight: bold; border-bottom: 3px solid #0d6efd; }
+        #result-container { background: white; border-radius: 8px; min-height: 200px; }
+        pre { white-space: pre-wrap; word-wrap: break-word; font-family: 'Consolas', monospace; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" href="/">Fly Schedule AI</a>
+        <div class="navbar-nav">
+            <a class="nav-link" href="/">홈</a>
+            <a class="nav-link active" href="/search">통합 검색</a>
+            <a class="nav-link" href="/llm">LLM 검색</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container my-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <h2 class="mb-4 fw-bold text-center">항공 데이터 통합 검색</h2>
+            
+            <!-- Navigation Tabs -->
+            <ul class="nav nav-tabs mb-4" id="searchTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="flight-tab" data-bs-toggle="tab" data-bs-target="#flight-pane" type="button" role="tab">항공편 검색</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="airport-tab" data-bs-toggle="tab" data-bs-target="#airport-pane" type="button" role="tab">공항 정보</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="airline-tab" data-bs-toggle="tab" data-bs-target="#airline-pane" type="button" role="tab">항공사 정보</button>
+                </li>
+            </ul>
+
+            <div class="tab-content card shadow-sm p-4" id="searchTabsContent">
+                <!-- Flight Search Pane -->
+                <div class="tab-pane fade show active" id="flight-pane" role="tabpanel">
+                    <form id="flightSearchForm">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">출발지 (공항명)</label>
+                                <input type="text" class="form-control" name="departure" placeholder="예: 김포, 제주" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">도착지 (공항명)</label>
+                                <input type="text" class="form-control" name="arrival" placeholder="예: 제주, 부산" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">날짜 (YYYY-MM-DD 또는 자연어)</label>
+                                <input type="text" class="form-control" name="date" placeholder="예: 2026-03-10, 내일, 모레" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">출발 시간 (이후)</label>
+                                <input type="text" class="form-control" name="afterTime" placeholder="예: 14:00, 오후 2시">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">최소 가격</label>
+                                <input type="number" class="form-control" name="minPrice" placeholder="원 단위">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">최대 가격</label>
+                                <input type="number" class="form-control" name="maxPrice" placeholder="원 단위">
+                            </div>
+                            <div class="col-12 mt-4">
+                                <button type="submit" class="btn btn-primary w-100 py-2">항공편 조회하기</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Airport Info Pane -->
+                <div class="tab-pane fade" id="airport-pane" role="tabpanel">
+                    <p class="text-muted">전국 공항의 목록 및 코드를 조회합니다.</p>
+                    <div class="d-flex gap-2">
+                        <input type="text" id="airportName" class="form-control" placeholder="특정 공항 이름 (선택)">
+                        <button class="btn btn-info text-white text-nowrap" onclick="searchAirport()">코드 조회</button>
+                        <button class="btn btn-secondary text-nowrap" onclick="listAllAirports()">전체 공항 목록</button>
+                    </div>
+                </div>
+
+                <!-- Airline Info Pane -->
+                <div class="tab-pane fade" id="airline-pane" role="tabpanel">
+                    <p class="text-muted">국내 항공사 정보 및 ID를 조회합니다.</p>
+                    <div class="d-flex gap-2">
+                        <input type="text" id="airlineName" class="form-control" placeholder="항공사 이름 (선택)">
+                        <button class="btn btn-info text-white text-nowrap" onclick="searchAirline()">ID 조회</button>
+                        <button class="btn btn-secondary text-nowrap" onclick="listAllAirlines()">전체 항공사 목록</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Result Display Area -->
+            <div id="result-container" class="mt-4 p-4 shadow-sm">
+                <h5 class="border-bottom pb-2 mb-3">결과 데이터</h5>
+                <div id="loading" class="text-center d-none">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2">데이터를 불러오는 중입니다...</p>
+                </div>
+                <div id="result-content">
+                    <p class="text-center text-muted">검색 버튼을 눌러 정보를 조회하세요.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const resultContent = document.getElementById('result-content');
+    const loading = document.getElementById('loading');
+
+    function showLoading(show) {
+        if(show) {
+            loading.classList.remove('d-none');
+            resultContent.classList.add('d-none');
+        } else {
+            loading.classList.add('d-none');
+            resultContent.classList.remove('d-none');
+        }
+    }
+
+    // 항공편 검색 처리
+    document.getElementById('flightSearchForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        showLoading(true);
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+        
+        // 빈 문자열이나 숫자가 아닌 값 처리
+        if (!data.afterTime) delete data.afterTime;
+        if (!data.minPrice) delete data.minPrice; else data.minPrice = parseInt(data.minPrice);
+        if (!data.maxPrice) delete data.maxPrice; else data.maxPrice = parseInt(data.maxPrice);
+
+        try {
+            const response = await fetch('/api/flight/search', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            
+            if (!result.airlineGroups || result.airlineGroups.length === 0) {
+                resultContent.innerHTML = '<p class="text-center text-muted">검색 결과가 없습니다.</p>';
+            } else {
+                let html = '<div class="accordion" id="flightAccordion">';
+                result.airlineGroups.forEach((group, index) => {
+                    html += `
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button ${index > 0 ? 'collapsed' : ''}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse${index}">
+                                    ${group.airlineName} (${group.flights.length}편)
+                                </button>
+                            </h2>
+                            <div id="collapse${index}" class="accordion-collapse collapse ${index === 0 ? 'show' : ''}" data-bs-parent="#flightAccordion">
+                                <div class="accordion-body">
+                                    <table class="table table-hover mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>편명</th>
+                                                <th>출발</th>
+                                                <th>도착</th>
+                                                <th>요금 (Economy)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${group.flights.map(f => `
+                                                <tr>
+                                                    <td><span class="badge bg-secondary">${f.vihicleId || f.flightId}</span></td>
+                                                    <td>${formatDateTime(f.depPlandTime || f.departureTime)}</td>
+                                                    <td>${formatDateTime(f.arrPlandTime || f.arrivalTime)}</td>
+                                                    <td class="text-primary fw-bold">${(f.economyCharge || 0).toLocaleString()}원</td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                resultContent.innerHTML = html;
+            }
+        } catch (error) {
+            resultContent.innerHTML = `<div class="alert alert-danger">오류 발생: ${error.message}</div>`;
+        } finally {
+            showLoading(false);
+        }
+    });
+
+    function formatDateTime(str) {
+        if(!str || str.length < 12) return str;
+        // YYYYMMDDHHmm -> HH:mm (YYYY-MM-DD)
+        const hour = str.substring(8, 10);
+        const min = str.substring(10, 12);
+        return `${hour}:${min}`;
+    }
+
+    async function listAllAirports() {
+        showLoading(true);
+        try {
+            const response = await fetch('/api/info/airports');
+            const resultText = await response.text();
+            resultContent.innerHTML = `<pre>${resultText}</pre>`;
+        } catch (error) {
+            resultContent.innerHTML = `<div class="alert alert-danger">오류 발생: ${error.message}</div>`;
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    async function searchAirport() {
+        const name = document.getElementById('airportName').value;
+        if(!name) return alert('공항 이름을 입력하세요.');
+        showLoading(true);
+        try {
+            const response = await fetch(`/api/info/airport-code?name=${name}`);
+            const resultText = await response.text();
+            resultContent.innerHTML = `<pre>${resultText}</pre>`;
+        } catch (error) {
+            resultContent.innerHTML = `<div class="alert alert-danger">오류 발생: ${error.message}</div>`;
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    async function listAllAirlines() {
+        showLoading(true);
+        try {
+            const response = await fetch('/api/info/airlines');
+            const resultText = await response.text();
+            resultContent.innerHTML = `<pre>${resultText}</pre>`;
+        } catch (error) {
+            resultContent.innerHTML = `<div class="alert alert-danger">오류 발생: ${error.message}</div>`;
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    async function searchAirline() {
+        const name = document.getElementById('airlineName').value;
+        if(!name) return alert('항공사 이름을 입력하세요.');
+        showLoading(true);
+        try {
+            const response = await fetch(`/api/info/airline-id?name=${name}`);
+            const resultText = await response.text();
+            resultContent.innerHTML = `<pre>${resultText}</pre>`;
+        } catch (error) {
+            resultContent.innerHTML = `<div class="alert alert-danger">오류 발생: ${error.message}</div>`;
+        } finally {
+            showLoading(false);
+        }
+    }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
