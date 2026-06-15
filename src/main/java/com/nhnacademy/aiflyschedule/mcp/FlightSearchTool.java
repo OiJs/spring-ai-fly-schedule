@@ -46,7 +46,7 @@ public class FlightSearchTool {
 
         FlightSearchResult result = orchestrator.coordinateSearch(request);
 
-        // 검색 결과가 있으면 컨텍스트에 저장 자연어+DTO 지원
+        // 검색 결과 컨텍스트에 저장
         FlightSearchContext.setResult(result);
 
         return result;

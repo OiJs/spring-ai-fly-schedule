@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class AirlineInfoTool {
     private final AirlineCodeAgent airlineCodeAgent;
+
 @Tool(
         description = "전체 항공사 목록을 조회합니다. " +
                 "국내 모든 항공사의 코드와 이름을 반환합니다. " +

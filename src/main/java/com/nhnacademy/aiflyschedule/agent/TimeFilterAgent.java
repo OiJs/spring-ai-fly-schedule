@@ -37,7 +37,7 @@ public class TimeFilterAgent {
                     return filteredFlights.isEmpty() ? null : new AirlineGroupResponse(group.airlineName(), filteredFlights);
                 })
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private int parseTimeToInt(String timeStr) {
